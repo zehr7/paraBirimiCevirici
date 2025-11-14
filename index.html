@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Şık Para Birimi Çevirici</title>
+  <style>
+    :root{
+      --bg:#0f1724;
+      --card:#0b1220cc;
+      --glass: rgba(255,255,255,0.05);
+      --accent: #7c3aed;
+      --muted: #9aa4b2;
+      font-family: Inter, sans-serif;
+    }
+    body{margin:0;background:#0f1724;color:white;display:flex;justify-content:center;padding:40px}
+    .card{width:100%;max-width:900px;background:#101a2dcc;border-radius:16px;padding:28px;display:grid;grid-template-columns:1fr 320px;gap:22px;border:1px solid rgba(255,255,255,0.05)}
+    label{font-size:13px;color:#ffffff;margin-bottom:6px;display:block}
+    input,select{width:100%;padding:12px;border-radius:10px;border:none;background:#1e1f28;color:#ffffff;outline:none;font-size:15px;appearance:none;}
+    button{padding:10px 14px;border:none;border-radius:10px;cursor:pointer}
+    #convert{background:#7c3aed;color:white}
+    .swap-btn{background:rgba(255,255,255,0.08);color:white}
+    .result-panel{background:rgba(255,255,255,0.04);padding:16px;border-radius:12px}
+    .big{font-size:24px;font-weight:700}
+    .small{font-size:13px;color:#9aa4b2}
+    @media(max-width:800px){.card{grid-template-columns:1fr}}
+  select option{background:#1e1f28;color:#ffffff;}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div>
+      <h2>Para Birimi Çevirici</h2>
+      <p style="color:#9aa4b2">Döviz Kuru.</p>
+
+      <label>Miktar</label>
+      <input id="amount" type="number" value="1" />
+
+      <label style="margin-top:14px">Kimden</label>
+      <select id="from"></select>
+
+      <label style="margin-top:14px">Kime</label>
+      <select id="to"></select>
+
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <button id="convert">Çevir</button>
+        <button id="swap" class="swap-btn">⇄</button>
+        <button id="refresh" class="swap-btn">Güncelle</button>
+      </div>
+
+      <div class="result-panel" style="margin-top:16px">
+        <div class="small">Sonuç</div>
+        <div id="result" class="big">—</div>
+        <div id="rateText" class="small">—</div>
+      </div>
+    </div>
+
+    <aside>
+      <h3 style="margin-top:0">Hızlı İpuçları</h3>
+      <ul style="color:#9aa4b2">
+        <li>Gerçek zamanlı kur güncellemesi</li>
+        <li>Desteklenen tüm para birimleri otomatik yüklenir</li>
+      </ul>
+      <div class="result-panel" style="margin-top:20px;text-align:center">
+        <div class="small">Desteklenen para birimi sayısı</div>
+        <div id="count" style="font-size:22px;font-weight:700">—</div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    const API_KEY = "fca_live_Mcv1n7D4VBL13cKO612WvyOJdf80XzJFpMKS0RLv";
+
+    const fromSel = document.getElementById("from");
+    const toSel = document.getElementById("to");
+    const amountInput = document.getElementById("amount");
+    const resultEl = document.getElementById("result");
+    const rateText = document.getElementById("rateText");
+    const countEl = document.getElementById("count");
+
+    async function fetchCurrencies(){
+      const res = await fetch(`https://api.freecurrencyapi.com/v1/currencies?apikey=${API_KEY}`);
+      const data = await res.json();
+      return data.data;
+    }
+
+    async function loadCurrencies(){
+      try{
+        const currencies = await fetchCurrencies();
+        const entries = Object.entries(currencies);
+
+        fromSel.innerHTML = "";
+        toSel.innerHTML = "";
+
+        entries.forEach(([code, obj]) => {
+          fromSel.add(new Option(`${code} — ${obj.name}`, code));
+          toSel.add(new Option(`${code} — ${obj.name}`, code));
+        });
+
+        fromSel.value = "USD";
+        toSel.value = "TRY";
+
+        countEl.textContent = entries.length;
+      }catch(e){
+        resultEl.textContent = "Para birimleri alınamadı";
+      }
+    }
+
+    async function convert(){
+      const from = fromSel.value;
+      const to = toSel.value;
+      const amount = parseFloat(amountInput.value) || 0;
+
+      const res = await fetch(`https://api.freecurrencyapi.com/v1/latest?apikey=${API_KEY}&base_currency=${from}&currencies=${to}`);
+      const data = await res.json();
+      const rate = data.data[to];
+
+      const total = amount * rate;
+
+      resultEl.textContent = `${total.toLocaleString()} ${to}`;
+      rateText.textContent = `1 ${from} = ${rate} ${to}`;
+    }
+
+    document.getElementById("convert").onclick = convert;
+    document.getElementById("refresh").onclick = convert;
+    document.getElementById("swap").onclick = () => {
+      const a = fromSel.value;
+      fromSel.value = toSel.value;
+      toSel.value = a;
+      convert();
+    };
+
+    loadCurrencies();
+  </script>
+</body>
+</html>
